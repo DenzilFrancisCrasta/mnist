@@ -1,4 +1,4 @@
-import argparse
+import argparse, neuralnet
     
 class MnistApplication(object):
     ''' An application to classify the MNIST digit dataset using Multilayer FeedForward Neural Network 
@@ -25,10 +25,10 @@ class MnistApplication(object):
     def __init__(self):
         self.parser = argparse.ArgumentParser()
 
-    def initialize_switches(self):
-        ''' Initialize the command-line arguments parser arguments '''
+    def setup_commandline_parser(self):
+        ''' Setup the parser to accept hyperparameters from commandline arguments '''
 
-        # Methods to check constraints and format  certain command-line arguments
+        # helper functions to check constraints and format certain command-line arguments
         def valid_batch_size(string):
             ''' Enforces valid mini-batch-sizes for gradient descent algorithms '''
             batch_size = int(string)
@@ -58,20 +58,16 @@ class MnistApplication(object):
         self.parser.add_argument('--expt_dir'  , help = self.help_msgs['export_dir'], default='.')
         self.parser.add_argument('--mnist'     , help = self.help_msgs['mnist'], required=True)
 
+    def parse_hyperparameters(self):
+        ''' Parse the hyperparameters for training using the command line arguments '''
+        self.h_params = self.parser.parse_args()
 
 
 
 if __name__ == '__main__':
     app = MnistApplication()
-    app.initialize_switches()
-    args = app.parser.parse_args()
-    print(args)
+    app.setup_commandline_parser()
+    app.parse_hyperparameters()
+    print(app.h_params)
 
 
-#Load the MNIST dataset
-#f = gzip.open('mnist.pkl.gz', 'rb')
-#train_set, valid_set, test_set = cPickle.load(f)
-#f.close()
-
-#data, label = train_set
-#print(len(data), len(label))
