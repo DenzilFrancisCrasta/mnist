@@ -2,8 +2,7 @@ import argparse
     
 class MnistApplication(object):
     ''' An application to classify the MNIST digit dataset using Multilayer FeedForward Neural Network 
-        trained using Stochastic Gradient Descent with backpropogation
-    '''
+        trained using Stochastic Gradient Descent with backpropogation '''
 
     # help messages for the various input parameters 
 
