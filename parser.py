@@ -64,7 +64,7 @@ class CommandLineParser(object):
         self.h_params = self.parser.parse_args()
         if len(self.h_params.sizes) != self.h_params.num_hidden:
             msg = "Mismatch between number of hidden units specified and length of the csv list of sizes of hidden layers" 
-            raise argparse.ArgumentTypeError(msg)
+            self.parser.error(msg)
 
 
 if __name__ == '__main__':
