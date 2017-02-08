@@ -1,22 +1,16 @@
 ''' MNIST Digit Classification Application '''
+from parser import CommandLineParser
 from mnist import MnistApplication
-import cPickle, gzip
+import numpy as np
 
-# Bootstrap the application
-app = MnistApplication()
-app.setup_commandline_parser()
-app.parse_hyperparameters()
+# Setup the parser to read hyperparams from commandline 
+parser = CommandLineParser()
+parser.initialize_switches()
+parser.parse_hyperparameters()
 
-print(app.h_params)
+# Bootstrap the mnist application
+app = MnistApplication(parser.h_params)
+app.load_and_prepare_data()
 
-#Load the MNIST dataset
-f = gzip.open(app.h_params.mnist, 'rb')
-train_set, validation_set, test_set = cPickle.load(f)
-f.close()
+print(parser.h_params)
 
-#unpack the dataset predictors and target 
-train_x, train_y = train_set
-validation_x, validation_y = validation_set
-test_x, test_y = test_set
-
-print(len(train_x), len(train_y))
