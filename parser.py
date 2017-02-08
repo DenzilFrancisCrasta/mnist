@@ -59,12 +59,15 @@ class CommandLineParser(object):
         self.parser.add_argument('--expt_dir'  , help = self.help_msgs['export_dir'], default='.')
         self.parser.add_argument('--mnist'     , help = self.help_msgs['mnist'], required=True)
 
+    def are_params_valid(self):
+        if len(self.h_params.sizes) != self.h_params.num_hidden:
+            msg = "Mismatch between number of hidden layers and list length of hidden layer sizes" 
+            self.parser.error(msg)
+
     def parse_hyperparameters(self):
         ''' Parse the hyperparameters for training using the command line arguments '''
         self.h_params = self.parser.parse_args()
-        if len(self.h_params.sizes) != self.h_params.num_hidden:
-            msg = "Mismatch between number of hidden units specified and length of the csv list of sizes of hidden layers" 
-            self.parser.error(msg)
+        self.are_params_valid()
 
 
 if __name__ == '__main__':
