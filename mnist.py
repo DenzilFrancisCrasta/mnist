@@ -1,15 +1,12 @@
 import cPickle, gzip
-from neuralnet import NeuralNetwork
 import numpy as np
 
-class MnistApplication(object):
-    ''' MNIST Application Driver. 
-        Responsibilities include setting up the hyperparameters and 
-        preparing datasets before delegating the training to 
-        the MultiLayer Feedforward Neural Network '''
+class MnistDataLoader(object):
+    ''' MNIST Data Loader. 
+        Preps the mnist digit data from a pickled file.  '''
 
-    def __init__(self, hyper_params):
-        self.h_params = hyper_params
+    def __init__(self, mnist_path):
+        self.mnist_path = mnist_path
 
     def dense_to_one_hot(self, labels_dense, num_classes):
         num_labels = labels_dense.shape[0]
@@ -18,30 +15,27 @@ class MnistApplication(object):
         labels_one_hot.flat[index_offset + labels_dense.ravel()] = 1
         return labels_one_hot
 
+    def encode_one_hot(self, n):
+        a = np.zeros((10, 1))
+        a[n] = 1.0
+        return a
+
+    def format_dataset(self, predictors, target):
+        ''' Formats the predictors and targets as np.arrays '''
+        data_x = [np.reshape(x, (784, 1)) for x in predictors]
+        data_y = [self.encode_one_hot(y) for y in target]
+        return zip(data_x, data_y)
+
     def load_and_prepare_data(self):
         ''' Load the mnist data from pickled file and 
             prepare dataset as list of tuples of predictor and target variables '''
-
         #Load the MNIST dataset
-        f = gzip.open(self.h_params.mnist, 'rb')
+        f = gzip.open(self.mnist_path, 'rb')
         train_set, validation_set, test_set = cPickle.load(f)
         f.close()
 
-        #unpack the train, validation and test data tuples
-        train_x, train_y = train_set
-        validation_x, validation_y = validation_set
-        test_x, test_y = test_set
+        train_data = self.format_dataset(train_set[0], train_set[1])
+        validation_data = self.format_dataset(validation_set[0], validation_set[1])
+        test_data = self.format_dataset(test_set[0], test_set[1])
+        return (train_data, validation_data, test_data)
 
-        train_y = self.dense_to_one_hot(train_y, 10)
-        validation_y = self.dense_to_one_hot(validation_y, 10)
-        test_y = self.dense_to_one_hot(test_y, 10)
-
-        # pack data into a list of predictor and target tuple list
-        self.training_data = [(x, y) for x, y in zip(train_x, train_y)]
-        self.validation_data = [(x, y) for x, y in zip(validation_x, validation_y)]
-        self.test_data = [(x, y) for x, y in zip(test_x, test_y)]
-        #print(self.training_data[0])
-
-    def train(self):
-		nn = NeuralNetwork(self.h_params.sizes)
-		nn.stochastic_gradient_descent(self.training_data, self.validation_data, self.h_params.batch_size, 30, self.h_params.lr) 
