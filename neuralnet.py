@@ -71,7 +71,7 @@ class NeuralNetwork(object):
 
     def evaluate(self, test_data):
         results = [(np.argmax(self.feedforward(x)), y) for (x,y) in test_data]  
-        return sum(int(x==y) for (x,y) in results)
+        return sum([int(x==y) for (x,y) in results])
 
 
 def sigmoid(z):

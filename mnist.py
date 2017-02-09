@@ -20,12 +20,6 @@ class MnistDataLoader(object):
         a[n] = 1.0
         return a
 
-    def format_dataset(self, predictors, target):
-        ''' Formats the predictors and targets as np.arrays '''
-        data_x = [np.reshape(x, (784, 1)) for x in predictors]
-        data_y = [self.encode_one_hot(y) for y in target]
-        return zip(data_x, data_y)
-
     def load_and_prepare_data(self):
         ''' Load the mnist data from pickled file and 
             prepare dataset as list of tuples of predictor and target variables '''
@@ -34,8 +28,12 @@ class MnistDataLoader(object):
         train_set, validation_set, test_set = cPickle.load(f)
         f.close()
 
-        train_data = self.format_dataset(train_set[0], train_set[1])
-        validation_data = self.format_dataset(validation_set[0], validation_set[1])
-        test_data = self.format_dataset(test_set[0], test_set[1])
+        train_x = [np.reshape(x, (784, 1)) for x in train_set[0]]
+        train_y = [self.encode_one_hot(y) for y in train_set[1]]
+        train_data = zip(train_x, train_y)
+        validation_x = [np.reshape(x, (784, 1)) for x in validation_set[0]]
+        validation_data = zip(validation_x, validation_set[1]) 
+        test_x = [np.reshape(x, (784, 1)) for x in test_set[0]]
+        test_data = zip(test_x, test_set[1]) 
         return (train_data, validation_data, test_data)
 
