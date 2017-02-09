@@ -1,25 +1,21 @@
 import numpy as np
+import random
 
 class NeuralNetwork(object):
     ''' Multilayer Feedforward Neural Network trained using Stochastic Gradient Descent '''
     def __init__(self, sizes):
         self.sizes   = sizes
-        print(sizes)
         self.biases  = [np.random.randn(x,1) for x   in sizes[1:] ]
         self.weights = [np.random.randn(x,y) for x,y in zip(sizes[1:], sizes[:-1])]
 
-        # Setup a seed for reproducibility of results
-        np.random.seed(1234)
 
     def stochastic_gradient_descent(self, training_data, test_data, mini_batch_size, epochs, eta):
-		''' mini batch Stochastic Gradient Descent algorithm training ''' 
-		for i in xrange(epochs):
-			np.random.shuffle(training_data)
-
-		# process a STEP of the gradient descent on a mini batch of the training data 
-		for j in xrange(0, len(training_data), mini_batch_size):
-			self.process_step( training_data[j:j+mini_batch_size], eta )
-			print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
+        ''' mini batch Stochastic Gradient Descent algorithm training ''' 
+        for i in xrange(epochs):
+            random.shuffle(training_data)
+            for j in xrange(0, len(training_data), mini_batch_size):
+                self.process_step( training_data[j:j+mini_batch_size], eta )
+            print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
 
 
     def process_step(self, mini_batch, eta):
@@ -28,8 +24,8 @@ class NeuralNetwork(object):
 		nabla_w = [np.zeros(w.shape) for w in self.weights]
 
         # for each training data point P=(x,y) accumulate the derivative of error 
-		for x,y in mini_batch:
-			nabla_b_p, nabla_w_p = self.backpropogate(np.array(x),np.array(y))
+		for (x,y) in mini_batch:
+			nabla_b_p, nabla_w_p = self.backpropogate(x,y)
 			nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, nabla_b_p)]
 			nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, nabla_w_p)]
 
@@ -41,6 +37,7 @@ class NeuralNetwork(object):
         nabla_w = [np.zeros(w.shape) for w in self.weights]
   
         activation = x
+        print(x.shape)
         activations = [x]
         zs = []
 
@@ -48,8 +45,11 @@ class NeuralNetwork(object):
 			z = np.dot(w, activation) + b
 			zs.append(z)
 			activation = sigmoid(z)
+                        print(z.shape)
 			activations.append(activation)
 
+        print(activations[-1].shape)
+        print(activations[-2].shape)
         print(activations[-3].shape)
 
         delta = self.cost_derivative(activations[-1], y) * sigmoid_prime(zs[-1])
