@@ -29,6 +29,3 @@ if  __name__ == "__main__":
     error_logger = Logger('log_loss.txt', error_formatter)
     msg = [2, 3, 3.3, 0.5]
     error_logger.log(msg)
-
-
-    

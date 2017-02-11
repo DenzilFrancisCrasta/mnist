@@ -52,7 +52,7 @@ class CommandLineParser(object):
         self.parser.add_argument('--sizes'     , type = csv_to_list, help = self.help_msgs['sizes'])
         self.parser.add_argument('--activation', choices = ['tanh', 'sigmoid'], default = 'sigmoid', help = self.help_msgs['activation'])
         self.parser.add_argument('--loss'      , choices = ['sq', 'ce'], default = 'sq', help = self.help_msgs['loss'])
-        self.parser.add_argument('--opt'       , choices = ['gd', 'momentum', 'nag', 'adam'], default = 'gd', help = self.help_msgs['opt'])
+        self.parser.add_argument('--opt'       , choices = ['gd', 'momentum', 'nag', 'adam'], default = 'gd', help = self.help_msgs['opt'], required=True)
         self.parser.add_argument('--batch_size', type = valid_batch_size, default = 10, help = self.help_msgs['batch_size'])
         self.parser.add_argument('--anneal'    , type = bool_t, default=False, help = self.help_msgs['anneal'])
         self.parser.add_argument('--save_dir'  , help = self.help_msgs['save_dir'], default='.')
@@ -60,14 +60,27 @@ class CommandLineParser(object):
         self.parser.add_argument('--mnist'     , help = self.help_msgs['mnist'], required=True)
 
     def are_params_valid(self):
+        msg = None
+
         if len(self.h_params.sizes) != self.h_params.num_hidden:
             msg = "Mismatch between number of hidden layers and list length of hidden layer sizes" 
+        
+        if self.h_params.opt in ['momentum','nag'] and self.h_params.momentum == 0:
+            msg = "Plese supply a momentum using --momentum switch for the {} optimization method chosen ".format(self.h_params.opt) 
+
+        if self.h_params.opt not in ['momentum','nag'] and self.h_params.momentum > 0:
+            msg = "Please choose a momentum based optimization method. {} does not make use of the momentum {} supplied".format(self.h_params.opt, self.h_params.momentum)  
+
+        if msg is not None:
             self.parser.error(msg)
 
     def parse_hyperparameters(self):
         ''' Parse the hyperparameters for training using the command line arguments '''
         self.h_params = self.parser.parse_args()
         self.are_params_valid()
+        # add the sizes of input and output layer to the sizes list
+        self.h_params.sizes.insert(0, 784)
+        self.h_params.sizes.append(10)
 
 
 if __name__ == '__main__':

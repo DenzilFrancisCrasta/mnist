@@ -10,7 +10,7 @@ class NeuralNetwork(object):
         self.biases  = [np.random.randn(x,1) for x   in sizes[1:] ]
         self.weights = [np.random.randn(x,y) for x,y in zip(sizes[1:], sizes[:-1])]
 
-    def stochastic_gradient_descent(self, training_data, test_data, mini_batch_size, epochs, eta, gamma):
+    def stochastic_gradient_descent(self, training_data, test_data, mini_batch_size, epochs, eta, gamma, nesterov=False):
         ''' mini batch Stochastic Gradient Descent algorithm training ''' 
 
         for i in xrange(epochs):
@@ -19,17 +19,22 @@ class NeuralNetwork(object):
             self.prev_update_w = [np.zeros(w.shape) for w in self.weights]
 
             for j in xrange(0, len(training_data), mini_batch_size):
-                self.process_step( training_data[j:j+mini_batch_size], eta, gamma )
+                self.process_mini_batch( training_data[j:j+mini_batch_size], eta, gamma, nesterov)
             print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
 
 
-    def process_step(self, mini_batch, eta, gamma):
+    def process_mini_batch(self, mini_batch, eta, gamma, nesterov):
         ''' Process a single step of gradient descent on a mini batch '''
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
 
         update_b = [np.zeros(b.shape) for b in self.biases]
         update_w = [np.zeros(w.shape) for w in self.weights]
+
+        # Nesterov Lookahead Update 
+        if nesterov == True:
+            self.biases  = [b - gamma*prev_ub for b,prev_ub in zip(self.biases, self.prev_update_b)]
+            self.weights = [w - gamma*prev_uw for w,prev_uw in zip(self.weights, self.prev_update_w)]
 
         # for each training data point P=(x,y) accumulate the derivative of error 
         for (x,y) in mini_batch:
@@ -38,8 +43,8 @@ class NeuralNetwork(object):
 			nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, nabla_w_p)]
 
         # calculate updates for the current mini batch, for non momentum methods gamma = 0
-        update_b = [(gamma * prev_b) + (eta/len(mini_batch))*nb for prev_b,nb in zip(self.prev_update_b, nabla_b)]
-        update_w = [(gamma * prev_w) + (eta/len(mini_batch))*nw for prev_w,nw in zip(self.prev_update_w, nabla_w)]
+        update_b = [(int(not nesterov) * gamma * prev_b) + (eta/len(mini_batch))*nb for prev_b,nb in zip(self.prev_update_b, nabla_b)]
+        update_w = [(int(not nesterov) * gamma * prev_w) + (eta/len(mini_batch))*nw for prev_w,nw in zip(self.prev_update_w, nabla_w)]
 
         self.biases = [b - ub for b,ub in zip(self.biases, update_b)]
         self.weights = [w - uw for w,uw in zip(self.weights, update_w)]
