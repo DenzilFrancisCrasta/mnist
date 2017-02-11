@@ -21,4 +21,4 @@ parser.h_params.sizes.insert(0, 784)
 parser.h_params.sizes.append(10)
 
 neural_net = NeuralNetwork(parser.h_params.sizes)
-neural_net.stochastic_gradient_descent(training, validation, parser.h_params.batch_size, 30, parser.h_params.lr) 
+neural_net.stochastic_gradient_descent(training, validation, parser.h_params.batch_size, 30, parser.h_params.lr, parser.h_params.momentum) 

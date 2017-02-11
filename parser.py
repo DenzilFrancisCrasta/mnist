@@ -47,7 +47,7 @@ class CommandLineParser(object):
             return [int(x) for x in string.split(',')]
 
         self.parser.add_argument('--lr'        , type = float, default=2.5, help = self.help_msgs['learning_rate'])
-        self.parser.add_argument('--momentum'  , type = float, help = self.help_msgs['momentum'])
+        self.parser.add_argument('--momentum'  , type = float, default=0, help = self.help_msgs['momentum'])
         self.parser.add_argument('--num_hidden', type = int  , default=1, help = self.help_msgs['num_hidden'])
         self.parser.add_argument('--sizes'     , type = csv_to_list, help = self.help_msgs['sizes'])
         self.parser.add_argument('--activation', choices = ['tanh', 'sigmoid'], default = 'sigmoid', help = self.help_msgs['activation'])

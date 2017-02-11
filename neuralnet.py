@@ -3,35 +3,49 @@ import numpy as np
 class NeuralNetwork(object):
     ''' Multilayer Feedforward Neural Network trained using Stochastic Gradient Descent '''
     def __init__(self, sizes):
+        # Set the random number seed for reproducibility of results
+        np.random.seed(1234)
+
         self.sizes   = sizes
         self.biases  = [np.random.randn(x,1) for x   in sizes[1:] ]
         self.weights = [np.random.randn(x,y) for x,y in zip(sizes[1:], sizes[:-1])]
 
-    def stochastic_gradient_descent(self, training_data, test_data, mini_batch_size, epochs, eta):
+    def stochastic_gradient_descent(self, training_data, test_data, mini_batch_size, epochs, eta, gamma):
         ''' mini batch Stochastic Gradient Descent algorithm training ''' 
-        # Set the random number seed for reproducibility of results
-        np.random.seed(1234)
 
         for i in xrange(epochs):
             np.random.shuffle(training_data)
+            self.prev_update_b = [np.zeros(b.shape) for b in self.biases]
+            self.prev_update_w = [np.zeros(w.shape) for w in self.weights]
+
             for j in xrange(0, len(training_data), mini_batch_size):
-                self.process_step( training_data[j:j+mini_batch_size], eta )
+                self.process_step( training_data[j:j+mini_batch_size], eta, gamma )
             print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
 
 
-    def process_step(self, mini_batch, eta):
-		''' Process a single step of gradient descent on a mini batch '''
-		nabla_b = [np.zeros(b.shape) for b in self.biases]
-		nabla_w = [np.zeros(w.shape) for w in self.weights]
+    def process_step(self, mini_batch, eta, gamma):
+        ''' Process a single step of gradient descent on a mini batch '''
+        nabla_b = [np.zeros(b.shape) for b in self.biases]
+        nabla_w = [np.zeros(w.shape) for w in self.weights]
+
+        update_b = [np.zeros(b.shape) for b in self.biases]
+        update_w = [np.zeros(w.shape) for w in self.weights]
 
         # for each training data point P=(x,y) accumulate the derivative of error 
-		for (x,y) in mini_batch:
+        for (x,y) in mini_batch:
 			nabla_b_p, nabla_w_p = self.backpropogate(x,y)
 			nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, nabla_b_p)]
 			nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, nabla_w_p)]
 
-		self.weights = [w -(eta/len(mini_batch))*nw for w,nw in zip(self.weights, nabla_w)]
-		self.biases = [b -(eta/len(mini_batch))*nb for b,nb in zip(self.biases, nabla_b)]
+        # calculate updates for the current mini batch, for non momentum methods gamma = 0
+        update_b = [(gamma * prev_b) + (eta/len(mini_batch))*nb for prev_b,nb in zip(self.prev_update_b, nabla_b)]
+        update_w = [(gamma * prev_w) + (eta/len(mini_batch))*nw for prev_w,nw in zip(self.prev_update_w, nabla_w)]
+
+        self.biases = [b - ub for b,ub in zip(self.biases, update_b)]
+        self.weights = [w - uw for w,uw in zip(self.weights, update_w)]
+        
+        self.prev_update_b = update_b
+        self.prev_update_w = update_w
 
     def backpropogate(self, x, y):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
@@ -41,17 +55,21 @@ class NeuralNetwork(object):
         activations = [x]
         zs = []
 
+        # forward propogate the input and store the activations and pre-activations lists 
         for b, w in zip(self.biases, self.weights):
 			z = np.dot(w, activation) + b
 			zs.append(z)
 			activation = sigmoid(z)
 			activations.append(activation)
 
+        # Error at each output layer neuron is represented by delta 
         delta = self.cost_derivative(activations[-1], y) * sigmoid_prime(zs[-1])
 
+        # Derivatives of the cost w.r.t weight and bias at the output layer 
         nabla_b[-1] = delta
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
 
+        # Derivatives for all other layers below the output layer is calculated by backpropogation
         for l in xrange(2, len(self.sizes)):
 			z = zs[-l]
 			sp = sigmoid_prime(z)
