@@ -10,7 +10,13 @@ class NeuralNetwork(object):
         self.biases  = [np.random.randn(x,1) for x   in sizes[1:] ]
         self.weights = [np.random.randn(x,y) for x,y in zip(sizes[1:], sizes[:-1])]
 
-    def stochastic_gradient_descent(self, training_data, test_data, mini_batch_size, epochs, eta, gamma, nesterov=False):
+    def initialize_adam_parameters(self):
+        self.prev_m_b = [np.zeros(b.shape) for b in self.biases]
+        self.prev_v_b = [np.zeros(b.shape) for b in self.biases]
+        self.prev_m_w = [np.zeros(w.shape) for w in self.weights]
+        self.prev_v_w = [np.zeros(w.shape) for w in self.weights]
+
+    def stochastic_gradient_descent(self, training_data, test_data, mini_batch_size, epochs, eta, gamma, nesterov=False, adam=False):
         ''' mini batch Stochastic Gradient Descent algorithm training ''' 
 
         for i in xrange(epochs):
@@ -18,18 +24,30 @@ class NeuralNetwork(object):
             self.prev_update_b = [np.zeros(b.shape) for b in self.biases]
             self.prev_update_w = [np.zeros(w.shape) for w in self.weights]
 
+            if adam == True:
+                self.initialize_adam_parameters()
+
             for j in xrange(0, len(training_data), mini_batch_size):
-                self.process_mini_batch( training_data[j:j+mini_batch_size], eta, gamma, nesterov)
+                self.process_mini_batch( training_data[j:j+mini_batch_size], eta, gamma, nesterov, adam)
             print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
 
 
-    def process_mini_batch(self, mini_batch, eta, gamma, nesterov):
+    def process_mini_batch(self, mini_batch, eta, gamma, nesterov, adam):
         ''' Process a single step of gradient descent on a mini batch '''
+        epsilon = 1e-8 
+        beta = (0.9, 0.999)
+
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
 
         update_b = [np.zeros(b.shape) for b in self.biases]
         update_w = [np.zeros(w.shape) for w in self.weights]
+
+        if adam == True:
+            update_m_b = [np.zeros(b.shape) for b in self.biases]
+            update_v_b = [np.zeros(b.shape) for b in self.biases]
+            update_m_w = [np.zeros(w.shape) for w in self.weights]
+            update_v_w = [np.zeros(w.shape) for w in self.weights]
 
         # Nesterov Lookahead Update 
         if nesterov == True:
@@ -42,15 +60,32 @@ class NeuralNetwork(object):
 			nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, nabla_b_p)]
 			nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, nabla_w_p)]
 
+        
+        if adam == True:
+            update_m_b = [ beta[0] * prev_mb + (1 - beta[0]) * nb for prev_mb,nb in zip(self.prev_m_b, nabla_b)]
+            update_v_b = [ beta[1] * prev_vb + (1 - beta[1]) * (nb**2) for prev_vb,nb in zip(self.prev_v_b, nabla_b)]
+            update_m_w = [ beta[0] * prev_mw + (1 - beta[0]) * nw for prev_mw,nw in zip(self.prev_m_w, nabla_w)]
+            update_v_w = [ beta[1] * prev_vw + (1 - beta[1]) * (nw**2) for prev_vw,nw in zip(self.prev_v_w, nabla_w)]
+
         # calculate updates for the current mini batch, for non momentum methods gamma = 0
-        update_b = [(int(not nesterov) * gamma * prev_b) + (eta/len(mini_batch))*nb for prev_b,nb in zip(self.prev_update_b, nabla_b)]
-        update_w = [(int(not nesterov) * gamma * prev_w) + (eta/len(mini_batch))*nw for prev_w,nw in zip(self.prev_update_w, nabla_w)]
+        if adam == True:
+            update_b = [(eta / (len(mini_batch) * np.sqrt(u_vb + epsilon))) * u_mb for u_vb,u_mb in zip(update_v_b, update_m_b)]
+            update_w = [(eta / (len(mini_batch) * np.sqrt(u_vw + epsilon))) * u_mw for u_vw,u_mw in zip(update_v_w, update_m_w)]
+        else:
+            update_b = [(int(not nesterov) * gamma * prev_b) + (eta/len(mini_batch))*nb for prev_b,nb in zip(self.prev_update_b, nabla_b)]
+            update_w = [(int(not nesterov) * gamma * prev_w) + (eta/len(mini_batch))*nw for prev_w,nw in zip(self.prev_update_w, nabla_w)]
 
         self.biases = [b - ub for b,ub in zip(self.biases, update_b)]
         self.weights = [w - uw for w,uw in zip(self.weights, update_w)]
-        
-        self.prev_update_b = update_b
-        self.prev_update_w = update_w
+
+        if adam == True:
+            self.prev_m_b = update_m_b
+            self.prev_v_b = update_v_b 
+            self.prev_m_w = update_m_w 
+            self.prev_v_w = update_v_w 
+        else:  
+            self.prev_update_b = update_b
+            self.prev_update_w = update_w
 
     def backpropogate(self, x, y):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
@@ -98,7 +133,7 @@ class NeuralNetwork(object):
 
 
 def sigmoid(z):
-	return 1.0/(1.0 + np.exp(-z))
+    return 1.0/(1.0 + np.exp(-z))
 
 def sigmoid_prime(z):
 	return sigmoid(z)*(1-sigmoid(z))

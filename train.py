@@ -17,9 +17,12 @@ loader = MnistDataLoader(parser.h_params.mnist)
 training, validation, testing = loader.load_and_prepare_data()
 
 nesterov = True if parser.h_params.opt == "nag" else False
+adam = True if parser.h_params.opt == "adam" else False
 
 if nesterov:
     print "Nesterov Gradient Descent Mode Activated "
+elif adam:
+    print "Adam based Gradient Descent Mode Activated"
 
 neural_net = NeuralNetwork(parser.h_params.sizes)
-neural_net.stochastic_gradient_descent(training, validation, parser.h_params.batch_size, 30, parser.h_params.lr, parser.h_params.momentum, nesterov) 
+neural_net.stochastic_gradient_descent(training, validation, parser.h_params.batch_size, 30, parser.h_params.lr, parser.h_params.momentum, nesterov, adam) 
