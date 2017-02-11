@@ -2,8 +2,11 @@
 from parser import CommandLineParser
 from mnist import MnistDataLoader
 from neuralnet import NeuralNetwork
+import activations as act_f
+import costs
 
 import numpy as np
+
 
 # Setup the parser to read hyperparams from commandline 
 parser = CommandLineParser()
@@ -24,5 +27,16 @@ if nesterov:
 elif adam:
     print "Adam based Gradient Descent Mode Activated"
 
-neural_net = NeuralNetwork(parser.h_params.sizes)
+if parser.h_params.activation == 'sigmoid':
+    activation_function, activation_prime = act_f.sigmoid, act_f.sigmoid_prime
+else:
+    activation_function, activation_prime = act_f.tanh, act_f.tanh_prime
+    
+if parser.h_params.loss == 'sq':
+    loss = costs.SquaredError(activation_prime)
+else:
+    loss = costs.CrossEntropy(activation_prime)
+
+
+neural_net = NeuralNetwork(parser.h_params.sizes, loss, activation_function, activation_prime)
 neural_net.stochastic_gradient_descent(training, validation, parser.h_params.batch_size, 30, parser.h_params.lr, parser.h_params.momentum, nesterov, adam) 

@@ -2,11 +2,14 @@ import numpy as np
 
 class NeuralNetwork(object):
     ''' Multilayer Feedforward Neural Network trained using Stochastic Gradient Descent '''
-    def __init__(self, sizes):
+    def __init__(self, sizes, cost, activation_function, activation_prime):
         # Set the random number seed for reproducibility of results
         np.random.seed(1234)
 
         self.sizes   = sizes
+        self.cost = cost
+        self.activation_function = activation_function
+        self.activation_prime = activation_prime
         self.biases  = [np.random.randn(x,1) for x   in sizes[1:] ]
         self.weights = [np.random.randn(x,y) for x,y in zip(sizes[1:], sizes[:-1])]
 
@@ -99,12 +102,11 @@ class NeuralNetwork(object):
         for b, w in zip(self.biases, self.weights):
 			z = np.dot(w, activation) + b
 			zs.append(z)
-			activation = sigmoid(z)
+			activation = self.activation_function(z)
 			activations.append(activation)
 
         # Error at each output layer neuron is represented by delta 
-        delta = self.cost_derivative(activations[-1], y) * sigmoid_prime(zs[-1])
-
+        delta = self.cost.delta(y, activations[-1], zs[-1])
         # Derivatives of the cost w.r.t weight and bias at the output layer 
         nabla_b[-1] = delta
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
@@ -112,28 +114,18 @@ class NeuralNetwork(object):
         # Derivatives for all other layers below the output layer is calculated by backpropogation
         for l in xrange(2, len(self.sizes)):
 			z = zs[-l]
-			sp = sigmoid_prime(z)
+			sp = self.activation_prime(z)
 			delta = np.dot(self.weights[-l+1].transpose(), delta) * sp
 			nabla_b[-l] = delta
 			nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
 
         return (nabla_b, nabla_w)
 
-    def cost_derivative(self, output_activations, y):
-		return (output_activations-y)
-
     def feedforward(self, a):
         for b, w in zip(self.biases, self.weights):
-            a = sigmoid(np.dot(w, a) + b)
+            a = self.activation_function(np.dot(w, a) + b)
         return a
 
     def evaluate(self, test_data):
         results = [(np.argmax(self.feedforward(x)), y) for (x,y) in test_data]  
         return sum([int(x==y) for (x,y) in results])
-
-
-def sigmoid(z):
-    return 1.0/(1.0 + np.exp(-z))
-
-def sigmoid_prime(z):
-	return sigmoid(z)*(1-sigmoid(z))
