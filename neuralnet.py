@@ -31,10 +31,11 @@ class NeuralNetwork(object):
                 self.initialize_adam_parameters()
 
             n = len(training_data)
-
+            eta = eta*0.3 if (i+1) % 100 == 0 else eta
             for j in xrange(0, n, mini_batch_size):
                 self.process_mini_batch( training_data[j:j+mini_batch_size], eta, gamma, lmbda, nesterov, adam, n)
-            print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
+            if i % 3 == 0:
+                print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
 
 
     def process_mini_batch(self, mini_batch, eta, gamma, lmbda, nesterov, adam, n):
