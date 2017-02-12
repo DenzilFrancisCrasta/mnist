@@ -39,18 +39,21 @@ else:
     loss = costs.CrossEntropy(activation_prime)
 
 #setup loggers 
-loss_formatter = lg.Formatter("Epoch {}, Step {}, Loss: {}, lr: {}\n")
-error_formatter = lg.Formatter("Epoch {}, Step {}, Error: {}, lr: {}\n")
+loss_formatter  = lg.Formatter("Epoch {}, Step {}, Loss: {:.2f}, lr: {}\n")
+error_formatter = lg.Formatter("Epoch {}, Step {}, Error: {:.2f}, lr: {}\n")
 
-
-loggers = {
-            'train_loss_logger'  : lg.Logger(parser.h_params.expt_dir + '/log_loss_train.txt', loss_formatter),
-            'valid_loss_logger'  : lg.Logger(parser.h_params.expt_dir + '/log_loss_valid.txt', loss_formatter),  
-            'test_loss_logger'   : lg.Logger(parser.h_params.expt_dir + '/log_loss_test.txt' , loss_formatter),  
-            'train_error_logger' : lg.Logger(parser.h_params.expt_dir + '/log_error_train.txt', error_formatter),
-            'valid_error_logger' : lg.Logger(parser.h_params.expt_dir + '/log_error_valid.txt', error_formatter),  
-            'test_error_logger'  : lg.Logger(parser.h_params.expt_dir + '/log_error_test.txt' , error_formatter)  
-          }
+build_logs = False
+if build_logs == True:
+    loggers = {
+                'train_loss_logger'  : lg.Logger(parser.h_params.expt_dir + '/log_loss_train.txt', loss_formatter),
+                'valid_loss_logger'  : lg.Logger(parser.h_params.expt_dir + '/log_loss_valid.txt', loss_formatter),  
+                'test_loss_logger'   : lg.Logger(parser.h_params.expt_dir + '/log_loss_test.txt' , loss_formatter),  
+                'train_error_logger' : lg.Logger(parser.h_params.expt_dir + '/log_error_train.txt', error_formatter),
+                'valid_error_logger' : lg.Logger(parser.h_params.expt_dir + '/log_error_valid.txt', error_formatter),  
+                'test_error_logger'  : lg.Logger(parser.h_params.expt_dir + '/log_error_test.txt' , error_formatter)  
+              }
+else:
+    loggers = {}
 
 neural_net = NeuralNetwork(parser.h_params.sizes, 
                            loss, 
@@ -63,4 +66,5 @@ neural_net = NeuralNetwork(parser.h_params.sizes,
 neural_net.stochastic_gradient_descent(training, validation, testing, 
                                        parser.h_params.batch_size, parser.h_params.epochs, 
                                        parser.h_params.lr, parser.h_params.momentum, parser.h_params.lmbda, 
-                                       nesterov, adam) 
+                                       nesterov, adam,
+                                       build_logs) 

@@ -26,7 +26,7 @@ class NeuralNetwork(object):
     def stochastic_gradient_descent(self, training_data, validation_data, test_data, 
                                     mini_batch_size, epochs, 
                                     eta, gamma, lmbda, 
-                                    nesterov=False, adam=False):
+                                    nesterov=False, adam=False, build_logs=False):
         ''' mini batch Stochastic Gradient Descent algorithm training ''' 
 
         for i in xrange(epochs):
@@ -44,7 +44,7 @@ class NeuralNetwork(object):
             step = 1
             for j in xrange(0, len(training_data), mini_batch_size):
                 self.process_mini_batch( training_data[j:j+mini_batch_size], eta, gamma, lmbda, nesterov, adam, len(training_data))
-                if step % 100 == 0:
+                if build_logs == True and step % 100 == 0:
                     self.loggers['train_loss_logger'].log([i, step, self.total_cost(training_data[:10001]), eta])
                     self.loggers['valid_loss_logger'].log([i, step, self.total_cost(validation_data, True), eta])
                     self.loggers['test_loss_logger'].log([i, step, self.total_cost(test_data, True), eta])
