@@ -37,3 +37,4 @@ class MnistDataLoader(object):
         test_data = zip(test_x, test_set[1]) 
         return (train_data, validation_data, test_data)
 
+

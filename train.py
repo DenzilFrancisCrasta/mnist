@@ -33,10 +33,19 @@ else:
     activation_function, activation_prime = act_f.tanh, act_f.tanh_prime
     
 if parser.h_params.loss == 'sq':
-    loss = costs.SquaredError(activation_prime)
+    loss = costs.SoftmaxSquaredError(activation_prime)
 else:
     loss = costs.CrossEntropy(activation_prime)
 
 
-neural_net = NeuralNetwork(parser.h_params.sizes, loss, activation_function, activation_prime)
-neural_net.stochastic_gradient_descent(training, validation, parser.h_params.batch_size, 1000, parser.h_params.lr, parser.h_params.momentum, 0.5, nesterov, adam) 
+neural_net = NeuralNetwork(parser.h_params.sizes, 
+                           loss, 
+                           activation_function, 
+                           activation_prime, 
+                           act_f.softmax, 
+                           parser.h_params.anneal)
+
+neural_net.stochastic_gradient_descent(training, validation, 
+                                       parser.h_params.batch_size, parser.h_params.epochs, 
+                                       parser.h_params.lr, parser.h_params.momentum, parser.h_params.lmbda, 
+                                       nesterov, adam) 

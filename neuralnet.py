@@ -2,16 +2,18 @@ import numpy as np
 
 class NeuralNetwork(object):
     ''' Multilayer Feedforward Neural Network trained using Stochastic Gradient Descent '''
-    def __init__(self, sizes, cost, activation_function, activation_prime):
+    def __init__(self, sizes, cost, activation_function, activation_prime, output_activation_function, anneal=False):
         # Set the random number seed for reproducibility of results
         np.random.seed(1234)
 
         self.sizes   = sizes
         self.cost = cost
+        self.anneal = anneal
         self.activation_function = activation_function
+        self.output_activation_function = output_activation_function
         self.activation_prime = activation_prime
-        self.biases  = [np.random.randn(x,1) for x   in sizes[1:] ]
-        self.weights = [np.random.randn(x,y) for x,y in zip(sizes[1:], sizes[:-1])]
+        self.biases  = [np.random.randn(x,1)*(1.0/400) for x   in sizes[1:] ]
+        self.weights = [np.random.randn(x,y)*(1.0/400) for x,y in zip(sizes[1:], sizes[:-1])]
 
     def initialize_adam_parameters(self):
         self.prev_m_b = [np.zeros(b.shape) for b in self.biases]
@@ -19,23 +21,28 @@ class NeuralNetwork(object):
         self.prev_m_w = [np.zeros(w.shape) for w in self.weights]
         self.prev_v_w = [np.zeros(w.shape) for w in self.weights]
 
-    def stochastic_gradient_descent(self, training_data, test_data, mini_batch_size, epochs, eta, gamma, lmbda, nesterov=False, adam=False):
+    def stochastic_gradient_descent(self, training_data, 
+                                    test_data, mini_batch_size, epochs, 
+                                    eta, gamma, lmbda, 
+                                    nesterov=False, adam=False):
         ''' mini batch Stochastic Gradient Descent algorithm training ''' 
 
         for i in xrange(epochs):
             np.random.shuffle(training_data)
+
             self.prev_update_b = [np.zeros(b.shape) for b in self.biases]
             self.prev_update_w = [np.zeros(w.shape) for w in self.weights]
 
             if adam == True:
                 self.initialize_adam_parameters()
 
-            n = len(training_data)
-            eta = eta*0.3 if (i+1) % 100 == 0 else eta
-            for j in xrange(0, n, mini_batch_size):
-                self.process_mini_batch( training_data[j:j+mini_batch_size], eta, gamma, lmbda, nesterov, adam, n)
-            if i % 3 == 0:
-                print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
+            if self.anneal == True: 
+                eta = eta*0.789 if (i+1) % 50 == 0 else eta
+
+            for j in xrange(0, len(training_data), mini_batch_size):
+                self.process_mini_batch( training_data[j:j+mini_batch_size], eta, gamma, lmbda, nesterov, adam, len(training_data))
+
+            print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
 
 
     def process_mini_batch(self, mini_batch, eta, gamma, lmbda, nesterov, adam, n):
@@ -75,8 +82,8 @@ class NeuralNetwork(object):
 
         # calculate updates for the current mini batch, for non momentum methods gamma = 0
         if adam == True:
-            update_b = [(eta / (len(mini_batch) * np.sqrt(u_vb + epsilon))) * u_mb for u_vb,u_mb in zip(update_v_b, update_m_b)]
-            update_w = [(eta / (len(mini_batch) * np.sqrt(u_vw + epsilon))) * u_mw for u_vw,u_mw in zip(update_v_w, update_m_w)]
+            update_b = [(eta / (len(mini_batch) * (np.sqrt(u_vb) + epsilon))) * u_mb for u_vb,u_mb in zip(update_v_b, update_m_b)]
+            update_w = [(eta / (len(mini_batch) * (np.sqrt(u_vw) + epsilon))) * u_mw for u_vw,u_mw in zip(update_v_w, update_m_w)]
         else:
             update_b = [(int(not nesterov) * gamma * prev_b) + (eta/len(mini_batch))*nb for prev_b,nb in zip(self.prev_update_b, nabla_b)]
             update_w = [(int(not nesterov) * gamma * prev_w) + (eta/len(mini_batch))*nw for prev_w,nw in zip(self.prev_update_w, nabla_w)]
@@ -102,11 +109,17 @@ class NeuralNetwork(object):
         zs = []
 
         # forward propogate the input and store the activations and pre-activations lists 
-        for b, w in zip(self.biases, self.weights):
-			z = np.dot(w, activation) + b
-			zs.append(z)
-			activation = self.activation_function(z)
-			activations.append(activation)
+        for b, w in zip(self.biases[:-1], self.weights[:-1]):
+            z = np.dot(w, activation) + b
+            zs.append(z)
+            activation = self.activation_function(z)
+            activations.append(activation)
+
+        z = np.dot(self.weights[-1], activations[-1]) + self.biases[-1]
+        zs.append(z)
+        activation = self.output_activation_function(z)
+        activations.append(activation)
+        
 
         # Error at each output layer neuron is represented by delta 
         delta = self.cost.delta(y, activations[-1], zs[-1])
@@ -124,9 +137,23 @@ class NeuralNetwork(object):
 
         return (nabla_b, nabla_w)
 
+    def encode_one_hot(self, n):
+        a = np.zeros((10, 1))
+        a[n] = 1.0
+        return a
+  
+    def total_cost(self, data, make_one_hot=False):
+        total_cost = 0.0
+        for x, y in data:
+            a = self.feedforward(x)
+            if make_one_hot: y = self.encode_one_hot(y)
+            total_cost += self.cost.cost(y, a)
+        return total_cost
+    
     def feedforward(self, a):
-        for b, w in zip(self.biases, self.weights):
+        for b, w in zip(self.biases[:-1], self.weights[:-1]):
             a = self.activation_function(np.dot(w, a) + b)
+        a = self.output_activation_function(np.dot(self.weights[-1],a)+self.biases[-1])
         return a
 
     def evaluate(self, test_data):
