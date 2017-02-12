@@ -39,4 +39,4 @@ else:
 
 
 neural_net = NeuralNetwork(parser.h_params.sizes, loss, activation_function, activation_prime)
-neural_net.stochastic_gradient_descent(training, validation, parser.h_params.batch_size, 30, parser.h_params.lr, parser.h_params.momentum, nesterov, adam) 
+neural_net.stochastic_gradient_descent(training, validation, parser.h_params.batch_size, 100, parser.h_params.lr, parser.h_params.momentum, 0.5, nesterov, adam) 

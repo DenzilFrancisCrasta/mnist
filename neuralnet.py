@@ -19,7 +19,7 @@ class NeuralNetwork(object):
         self.prev_m_w = [np.zeros(w.shape) for w in self.weights]
         self.prev_v_w = [np.zeros(w.shape) for w in self.weights]
 
-    def stochastic_gradient_descent(self, training_data, test_data, mini_batch_size, epochs, eta, gamma, nesterov=False, adam=False):
+    def stochastic_gradient_descent(self, training_data, test_data, mini_batch_size, epochs, eta, gamma, lmbda, nesterov=False, adam=False):
         ''' mini batch Stochastic Gradient Descent algorithm training ''' 
 
         for i in xrange(epochs):
@@ -30,12 +30,14 @@ class NeuralNetwork(object):
             if adam == True:
                 self.initialize_adam_parameters()
 
-            for j in xrange(0, len(training_data), mini_batch_size):
-                self.process_mini_batch( training_data[j:j+mini_batch_size], eta, gamma, nesterov, adam)
+            n = len(training_data)
+
+            for j in xrange(0, n, mini_batch_size):
+                self.process_mini_batch( training_data[j:j+mini_batch_size], eta, gamma, lmbda, nesterov, adam, n)
             print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
 
 
-    def process_mini_batch(self, mini_batch, eta, gamma, nesterov, adam):
+    def process_mini_batch(self, mini_batch, eta, gamma, lmbda, nesterov, adam, n):
         ''' Process a single step of gradient descent on a mini batch '''
         epsilon = 1e-8 
         beta = (0.9, 0.999)
@@ -79,7 +81,7 @@ class NeuralNetwork(object):
             update_w = [(int(not nesterov) * gamma * prev_w) + (eta/len(mini_batch))*nw for prev_w,nw in zip(self.prev_update_w, nabla_w)]
 
         self.biases = [b - ub for b,ub in zip(self.biases, update_b)]
-        self.weights = [w - uw for w,uw in zip(self.weights, update_w)]
+        self.weights = [(1 -  eta * (lmbda/n))*w - uw for w,uw in zip(self.weights, update_w)]
 
         if adam == True:
             self.prev_m_b = update_m_b
