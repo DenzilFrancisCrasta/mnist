@@ -15,6 +15,8 @@ class NeuralNetwork(object):
         self.activation_prime = activation_prime
         self.biases  = [np.random.randn(x,1)*(1.0/400) for x   in sizes[1:] ]
         self.weights = [np.random.randn(x,y)*(1.0/400) for x,y in zip(sizes[1:], sizes[:-1])]
+        self.prev_b = [np.zeros(b.shape) for b in self.biases]
+        self.prev_w = [np.zeros(w.shape) for w in self.weights]
 
 
     def initialize_adam_parameters(self):
@@ -29,6 +31,7 @@ class NeuralNetwork(object):
                                     nesterov=False, adam=False, build_logs=False):
         ''' mini batch Stochastic Gradient Descent algorithm training ''' 
 
+        self.prev_validation_loss = 1000000
         for i in xrange(epochs):
             np.random.shuffle(training_data)
 
@@ -37,9 +40,6 @@ class NeuralNetwork(object):
 
             if adam == True:
                 self.initialize_adam_parameters()
-
-            if self.anneal == True: 
-                eta = eta*0.789 if (i+1) % 50 == 0 else eta
 
             step = 1
             for j in xrange(0, len(training_data), mini_batch_size):
@@ -53,7 +53,21 @@ class NeuralNetwork(object):
                     self.loggers['test_error_logger'].log([i, step, self.error_rate(test_data), eta])
                 step += 1
 
-            print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
+            if self.anneal == True:
+                current_validation_loss = self.total_cost(validation_data, True)
+                if current_validation_loss > self.prev_validation_loss: 
+                    eta = eta * 0.625 
+                    for level in xrange(len(self.weights)):
+                        np.copyto(self.weights[level], self.prev_w[level])
+                        np.copyto(self.biases[level], self.prev_b[level])
+                else:
+                    for level in xrange(len(self.weights)):
+                        np.copyto(self.prev_w[level], self.weights[level])
+                        np.copyto(self.prev_b[level], self.biases[level])
+                    self.prev_validation_loss = current_validation_loss
+
+
+            print "Epoch {0}: {1} / {2}".format(i, self.evaluate(validation_data), len(test_data))
 
 
     def process_mini_batch(self, mini_batch, eta, gamma, lmbda, nesterov, adam, n):

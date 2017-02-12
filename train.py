@@ -14,7 +14,7 @@ parser = CommandLineParser()
 parser.initialize_switches()
 parser.parse_hyperparameters()
 
-print(parser.h_params)
+#print(parser.h_params)
 
 # Load the mnist dataset
 loader = MnistDataLoader(parser.h_params.mnist)
