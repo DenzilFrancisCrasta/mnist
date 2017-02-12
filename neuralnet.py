@@ -2,18 +2,20 @@ import numpy as np
 
 class NeuralNetwork(object):
     ''' Multilayer Feedforward Neural Network trained using Stochastic Gradient Descent '''
-    def __init__(self, sizes, cost, activation_function, activation_prime, output_activation_function, anneal=False):
+    def __init__(self, sizes, cost, activation_function, activation_prime, output_activation_function, loggers, anneal=False):
         # Set the random number seed for reproducibility of results
         np.random.seed(1234)
 
         self.sizes   = sizes
         self.cost = cost
         self.anneal = anneal
+        self.loggers = loggers
         self.activation_function = activation_function
         self.output_activation_function = output_activation_function
         self.activation_prime = activation_prime
         self.biases  = [np.random.randn(x,1)*(1.0/400) for x   in sizes[1:] ]
         self.weights = [np.random.randn(x,y)*(1.0/400) for x,y in zip(sizes[1:], sizes[:-1])]
+
 
     def initialize_adam_parameters(self):
         self.prev_m_b = [np.zeros(b.shape) for b in self.biases]
@@ -21,8 +23,8 @@ class NeuralNetwork(object):
         self.prev_m_w = [np.zeros(w.shape) for w in self.weights]
         self.prev_v_w = [np.zeros(w.shape) for w in self.weights]
 
-    def stochastic_gradient_descent(self, training_data, 
-                                    test_data, mini_batch_size, epochs, 
+    def stochastic_gradient_descent(self, training_data, validation_data, test_data, 
+                                    mini_batch_size, epochs, 
                                     eta, gamma, lmbda, 
                                     nesterov=False, adam=False):
         ''' mini batch Stochastic Gradient Descent algorithm training ''' 
@@ -39,8 +41,17 @@ class NeuralNetwork(object):
             if self.anneal == True: 
                 eta = eta*0.789 if (i+1) % 50 == 0 else eta
 
+            step = 1
             for j in xrange(0, len(training_data), mini_batch_size):
                 self.process_mini_batch( training_data[j:j+mini_batch_size], eta, gamma, lmbda, nesterov, adam, len(training_data))
+                if step % 100 == 0:
+                    self.loggers['train_loss_logger'].log([i, step, self.total_cost(training_data[:10001]), eta])
+                    self.loggers['valid_loss_logger'].log([i, step, self.total_cost(validation_data, True), eta])
+                    self.loggers['test_loss_logger'].log([i, step, self.total_cost(test_data, True), eta])
+                    self.loggers['train_error_logger'].log([i, step, self.error_rate(training_data[:10001], True), eta])
+                    self.loggers['valid_error_logger'].log([i, step, self.error_rate(validation_data), eta])
+                    self.loggers['test_error_logger'].log([i, step, self.error_rate(test_data), eta])
+                step += 1
 
             print "Epoch {0}: {1} / {2}".format(i, self.evaluate(test_data), len(test_data))
 
@@ -155,6 +166,15 @@ class NeuralNetwork(object):
             a = self.activation_function(np.dot(w, a) + b)
         a = self.output_activation_function(np.dot(self.weights[-1],a)+self.biases[-1])
         return a
+
+    def error_rate(self, data, is_one_hot=False):
+        if is_one_hot == True:
+            results = [(np.argmax(self.feedforward(x)), np.argmax(y)) for (x,y) in data]  
+        else:
+            results = [(np.argmax(self.feedforward(x)), y) for (x,y) in data]  
+        correct = sum([int(x==y) for (x,y) in results])
+
+        return 100 * (float(len(data) - correct)/ len(data)) 
 
     def evaluate(self, test_data):
         results = [(np.argmax(self.feedforward(x)), y) for (x,y) in test_data]  

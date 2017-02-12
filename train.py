@@ -3,6 +3,7 @@ from parser import CommandLineParser
 from mnist import MnistDataLoader
 from neuralnet import NeuralNetwork
 import activations as act_f
+import logger as lg
 import costs
 
 import numpy as np
@@ -17,7 +18,7 @@ print(parser.h_params)
 
 # Load the mnist dataset
 loader = MnistDataLoader(parser.h_params.mnist)
-training, validation, testing = loader.load_and_prepare_data()
+training, validation, testing = loader.load_and_prepare_data() 
 
 nesterov = True if parser.h_params.opt == "nag" else False
 adam = True if parser.h_params.opt == "adam" else False
@@ -37,15 +38,29 @@ if parser.h_params.loss == 'sq':
 else:
     loss = costs.CrossEntropy(activation_prime)
 
+#setup loggers 
+loss_formatter = lg.Formatter("Epoch {}, Step {}, Loss: {}, lr: {}\n")
+error_formatter = lg.Formatter("Epoch {}, Step {}, Error: {}, lr: {}\n")
+
+
+loggers = {
+            'train_loss_logger'  : lg.Logger(parser.h_params.expt_dir + '/log_loss_train.txt', loss_formatter),
+            'valid_loss_logger'  : lg.Logger(parser.h_params.expt_dir + '/log_loss_valid.txt', loss_formatter),  
+            'test_loss_logger'   : lg.Logger(parser.h_params.expt_dir + '/log_loss_test.txt' , loss_formatter),  
+            'train_error_logger' : lg.Logger(parser.h_params.expt_dir + '/log_error_train.txt', error_formatter),
+            'valid_error_logger' : lg.Logger(parser.h_params.expt_dir + '/log_error_valid.txt', error_formatter),  
+            'test_error_logger'  : lg.Logger(parser.h_params.expt_dir + '/log_error_test.txt' , error_formatter)  
+          }
 
 neural_net = NeuralNetwork(parser.h_params.sizes, 
                            loss, 
                            activation_function, 
                            activation_prime, 
                            act_f.softmax, 
+                           loggers,
                            parser.h_params.anneal)
 
-neural_net.stochastic_gradient_descent(training, validation, 
+neural_net.stochastic_gradient_descent(training, validation, testing, 
                                        parser.h_params.batch_size, parser.h_params.epochs, 
                                        parser.h_params.lr, parser.h_params.momentum, parser.h_params.lmbda, 
                                        nesterov, adam) 
