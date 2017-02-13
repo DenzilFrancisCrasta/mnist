@@ -1,2 +1,4 @@
 Neural Network classifier for MNIST digit dataset
 
+Turn Logging off by making build_log = False in train.py
+Set max-epochs by giving command line argument --epochs 3

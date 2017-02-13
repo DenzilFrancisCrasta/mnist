@@ -1,13 +1,16 @@
 import numpy as np
+import cPickle
 
 class NeuralNetwork(object):
     ''' Multilayer Feedforward Neural Network trained using Stochastic Gradient Descent '''
-    def __init__(self, sizes, cost, activation_function, activation_prime, output_activation_function, loggers, anneal=False):
+    def __init__(self, sizes, cost, activation_function, activation_prime, output_activation_function, loggers, expt_dir, save_dir, anneal=False):
         # Set the random number seed for reproducibility of results
         np.random.seed(1234)
 
         self.sizes   = sizes
         self.cost = cost
+        self.expt_dir = expt_dir
+        self.save_dir = save_dir
         self.anneal = anneal
         self.loggers = loggers
         self.activation_function = activation_function
@@ -17,9 +20,8 @@ class NeuralNetwork(object):
         self.weights = [np.random.randn(x,y)*(1.0/400) for x,y in zip(sizes[1:], sizes[:-1])]
         self.prev_b = [np.zeros(b.shape) for b in self.biases]
         self.prev_w = [np.zeros(w.shape) for w in self.weights]
-        self.train_f = open('logs/'+str(sizes[1])+'tr.txt', 'w')
-        self.valid_f = open('logs/'+str(sizes[1])+'valid.txt', 'w')
-        self.test_f = open('logs/'+str(sizes[1])+'test.txt', 'w')
+        self.best_biases = [np.zeros(b.shape) for b in self.biases]
+        self.best_weights = [np.zeros(w.shape) for w in self.weights]
 
     def initialize_adam_parameters(self):
         self.prev_m_b = [np.zeros(b.shape) for b in self.biases]
@@ -34,6 +36,7 @@ class NeuralNetwork(object):
         ''' mini batch Stochastic Gradient Descent algorithm training ''' 
 
         self.prev_validation_loss = 1000000
+        self.best_val_accuracy = 0
         for i in xrange(epochs):
             np.random.shuffle(training_data)
 
@@ -58,7 +61,7 @@ class NeuralNetwork(object):
             if self.anneal == True:
                 current_validation_loss = self.total_cost(validation_data, True)
                 if current_validation_loss > self.prev_validation_loss: 
-                    eta = eta * 0.625 
+                    eta = max(eta * 0.5, 0.00005) 
                     for level in xrange(len(self.weights)):
                         np.copyto(self.weights[level], self.prev_w[level])
                         np.copyto(self.biases[level], self.prev_b[level])
@@ -68,17 +71,18 @@ class NeuralNetwork(object):
                         np.copyto(self.prev_b[level], self.biases[level])
                     self.prev_validation_loss = current_validation_loss
 
+            self.current_val_accuracy = self.evaluate(validation_data)
+            if self.current_val_accuracy > self.best_val_accuracy:
+                self.best_val_accuracy = self.current_val_accuracy
+                for level in xrange(len(self.weights)):
+                    np.copyto(self.best_weights[level], self.weights[level])
+                    np.copyto(self.best_biases[level], self.biases[level])
 
-            print "Epoch {0}: {1} / {2}".format(i, self.evaluate(validation_data), len(test_data))
-            self.train_f.write(str(self.total_cost(training_data[:10001]))+'\n')
-            self.valid_f.write(str(self.total_cost(validation_data, True))+'\n')
-            self.test_f.write(str(self.total_cost(test_data, True))+'\n')
-        self.train_f.close()
-        self.valid_f.close()
-        self.test_f.close()
-
-
-
+            print "Epoch {0}: {1} out of {2} correct with lr:{3}".format(i, self.current_val_accuracy, len(validation_data), eta)
+        for level in xrange(len(self.weights)):
+            np.copyto(self.weights[level], self.best_weights[level])
+            np.copyto(self.biases[level], self.best_biases[level])
+        self.save_predictions_and_pickle(validation_data, test_data)
 
     def process_mini_batch(self, mini_batch, eta, gamma, lmbda, nesterov, adam, n):
         ''' Process a single step of gradient descent on a mini batch '''
@@ -162,7 +166,7 @@ class NeuralNetwork(object):
         nabla_b[-1] = delta
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
 
-        # Derivatives for all other layers below the output layer is calculated by backpropogation
+        # Derivatives for all other layers below the output layer are calculated by backpropogation
         for l in xrange(2, len(self.sizes)):
 			z = zs[-l]
 			sp = self.activation_prime(z)
@@ -199,6 +203,15 @@ class NeuralNetwork(object):
         correct = sum([int(x==y) for (x,y) in results])
 
         return 100 * (float(len(data) - correct)/ len(data)) 
+
+    def predict_labels(self, data):
+        results = [np.argmax(self.feedforward(x)) for (x,y) in data]  
+        return results
+    
+    def save_predictions_and_pickle(self, validation_data, test_data):
+        np.savetxt(self.expt_dir +'/valid_predictions.txt', self.predict_labels(validation_data), fmt='%d')
+        np.savetxt(self.expt_dir+'/test_predictions.txt', self.predict_labels(test_data), fmt='%d')
+        cPickle.dump((self.weights, self.biases), open(self.save_dir+'/model_weight_biases_tuple.pkl', 'wb'))
 
     def evaluate(self, test_data):
         results = [(np.argmax(self.feedforward(x)), y) for (x,y) in test_data]  

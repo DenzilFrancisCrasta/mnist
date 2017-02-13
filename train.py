@@ -42,7 +42,7 @@ else:
 loss_formatter  = lg.Formatter("Epoch {}, Step {}, Loss: {:.2f}, lr: {}\n")
 error_formatter = lg.Formatter("Epoch {}, Step {}, Error: {:.2f}, lr: {}\n")
 
-build_logs = False
+build_logs = True
 if build_logs == True:
     loggers = {
                 'train_loss_logger'  : lg.Logger(parser.h_params.expt_dir + '/log_loss_train.txt', loss_formatter),
@@ -61,6 +61,7 @@ neural_net = NeuralNetwork(parser.h_params.sizes,
                            activation_prime, 
                            act_f.softmax, 
                            loggers,
+                           parser.h_params.expt_dir, parser.h_params.save_dir,
                            parser.h_params.anneal)
 
 neural_net.stochastic_gradient_descent(training, validation, testing, 

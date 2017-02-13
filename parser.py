@@ -60,7 +60,7 @@ class CommandLineParser(object):
         self.parser.add_argument('--expt_dir'  , help = self.help_msgs['export_dir'], default='.')
         self.parser.add_argument('--mnist'     , help = self.help_msgs['mnist'], required=True)
         self.parser.add_argument('--lmbda'     , type = float, default=0.5, help = self.help_msgs['lambda'])
-        self.parser.add_argument('--epochs'    , type = int, default=100, help = self.help_msgs['epochs'])
+        self.parser.add_argument('--epochs'    , type = int, default=30, help = self.help_msgs['epochs'])
 
     def are_params_valid(self):
         msg = None
