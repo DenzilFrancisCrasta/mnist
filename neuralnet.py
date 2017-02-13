@@ -17,7 +17,9 @@ class NeuralNetwork(object):
         self.weights = [np.random.randn(x,y)*(1.0/400) for x,y in zip(sizes[1:], sizes[:-1])]
         self.prev_b = [np.zeros(b.shape) for b in self.biases]
         self.prev_w = [np.zeros(w.shape) for w in self.weights]
-
+        self.train_f = open('logs/'+str(sizes[1])+'tr.txt', 'w')
+        self.valid_f = open('logs/'+str(sizes[1])+'valid.txt', 'w')
+        self.test_f = open('logs/'+str(sizes[1])+'test.txt', 'w')
 
     def initialize_adam_parameters(self):
         self.prev_m_b = [np.zeros(b.shape) for b in self.biases]
@@ -68,6 +70,14 @@ class NeuralNetwork(object):
 
 
             print "Epoch {0}: {1} / {2}".format(i, self.evaluate(validation_data), len(test_data))
+            self.train_f.write(str(self.total_cost(training_data[:10001]))+'\n')
+            self.valid_f.write(str(self.total_cost(validation_data, True))+'\n')
+            self.test_f.write(str(self.total_cost(test_data, True))+'\n')
+        self.train_f.close()
+        self.valid_f.close()
+        self.test_f.close()
+
+
 
 
     def process_mini_batch(self, mini_batch, eta, gamma, lmbda, nesterov, adam, n):
