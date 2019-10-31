@@ -13,6 +13,7 @@ def tanh(z):
 def tanh_prime(z):
     return 1 - tanh(z)**2
 
+'''softmax function, also known as softargmax or normalized exponential function, is a function that takes as input a vector of K real numbers, and normalizes it into a probability distribution consisting of K probabilities proportional to the exponentials of the input numbers.'''
 def softmax(z):
     x = np.amax(z)
     a = z - x
